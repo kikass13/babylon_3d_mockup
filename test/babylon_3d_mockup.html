@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Babylon.js 3D Editor Mockup</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.92);
+      --panel-2: rgba(30, 41, 59, 0.95);
+      --border: rgba(148, 163, 184, 0.2);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: var(--text);
+    }
+    #app { position: relative; width: 100%; height: 100%; }
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      display: block;
+      background: radial-gradient(circle at top, #1e293b, #020617 70%);
+    }
+    .panel {
+      position: absolute;
+      z-index: 2;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+    .panel h1, .panel h2, .panel h3, .panel p { margin: 0; }
+    .topbar {
+      top: 16px; left: 16px; right: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; gap: 16px;
+    }
+    .title-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .title-wrap h1 { font-size: 18px; font-weight: 700; }
+    .title-wrap p { color: var(--muted); font-size: 13px; }
+    .badge-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge {
+      padding: 8px 12px; border-radius: 999px; background: var(--panel-2);
+      border: 1px solid var(--border); font-size: 12px; color: var(--muted);
+    }
+    .sidebar {
+      top: 92px; right: 16px; width: 360px; max-height: calc(100% - 108px);
+      overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 18px;
+    }
+    .section {
+      display: flex; flex-direction: column; gap: 12px; padding: 14px;
+      background: rgba(30, 41, 59, 0.5); border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .section h3 { font-size: 14px; font-weight: 700; }
+    .subtle { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .part-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .part-btn, .action-btn {
+      border: 1px solid var(--border); background: rgba(15, 23, 42, 0.8);
+      color: var(--text); border-radius: 14px; padding: 12px; cursor: pointer;
+      transition: 0.2s ease; text-align: left;
+    }
+    .part-btn:hover, .action-btn:hover { border-color: rgba(56, 189, 248, 0.5); transform: translateY(-1px); }
+    .part-btn.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4) inset;
+      background: rgba(8, 47, 73, 0.9);
+    }
+    .part-btn strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .part-btn span { display: block; font-size: 11px; color: var(--muted); }
+    .controls { display: grid; gap: 10px; }
+    .control-group {
+      display: grid; grid-template-columns: 70px 1fr 58px;
+      align-items: center; gap: 10px;
+    }
+    .control-group label { font-size: 12px; color: var(--muted); }
+    .control-group input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .value-box {
+      font-size: 12px; text-align: right; padding: 6px 8px;
+      border-radius: 10px; background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+    }
+    .action-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .hint {
+      position: absolute; bottom: 16px; left: 16px; max-width: 460px;
+      padding: 16px 18px; line-height: 1.45;
+    }
+    .hint strong { display: block; margin-bottom: 8px; }
+    @media (max-width: 980px) {
+      .topbar { flex-direction: column; align-items: stretch; }
+      .badge-row { justify-content: flex-start; }
+      .sidebar { width: calc(100% - 32px); top: auto; bottom: 16px; max-height: 46%; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="renderCanvas"></canvas>
+
+    <div class="panel topbar">
+      <div class="title-wrap">
+        <h1>Babylon.js 3D Editor Mockup</h1>
+        <p>Standalone prototype for a future WordPress plugin editor workflow.</p>
+      </div>
+      <div class="badge-row">
+        <div class="badge">Click a part to select</div>
+        <div class="badge">Drag to orbit camera</div>
+        <div class="badge">Use sliders to move and resize</div>
+      </div>
+    </div>
+
+    <aside class="panel sidebar">
+      <section class="section">
+        <h3>Object Parts</h3>
+        <p class="subtle">This mockup uses a simple cabinet-like object with editable sub-parts. In a real plugin, these could come from config or loaded models.</p>
+        <div id="partList" class="part-list"></div>
+      </section>
+
+      <section class="section">
+        <h3>Selected Part</h3>
+        <p id="selectedMeta" class="subtle">Nothing selected yet.</p>
+      </section>
+
+      <section class="section">
+        <h3>Move</h3>
+        <div id="positionControls" class="controls"></div>
+      </section>
+
+      <section class="section">
+        <h3>Resize</h3>
+        <div id="scaleControls" class="controls"></div>
+      </section>
+
+      <section class="section">
+        <h3>Quick Actions</h3>
+        <div class="action-row">
+          <button id="resetPart" class="action-btn">Reset selected part</button>
+          <button id="resetScene" class="action-btn">Reset whole object</button>
+        </div>
+      </section>
+    </aside>
+
+    <div class="panel hint">
+      <strong>Why this is useful</strong>
+      This prototype shows the interaction pattern for a simplified 3D editor: select a mesh part, edit transform values with UI controls, and preview the result in real time. Later, this can be wrapped as a WordPress plugin shortcode or block.
+    </div>
+  </div>
+
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.min.js"></script>
+  <script>
+    const canvas = document.getElementById('renderCanvas');
+    const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+
+    const state = {
+      parts: [],
+      selectedPart: null,
+      originals: new Map(),
+    };
+
+    const partListEl = document.getElementById('partList');
+    const selectedMetaEl = document.getElementById('selectedMeta');
+    const positionControlsEl = document.getElementById('positionControls');
+    const scaleControlsEl = document.getElementById('scaleControls');
+    const resetPartBtn = document.getElementById('resetPart');
+    const resetSceneBtn = document.getElementById('resetScene');
+
+    const numberFormat = (value) => Number(value).toFixed(2);
+
+    function makeControl(container, label, min, max, step, getValue, setValue) {
+      const wrap = document.createElement('div');
+      wrap.className = 'control-group';
+
+      const labelEl = document.createElement('label');
+      labelEl.textContent = label;
+
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = String(min);
+      input.max = String(max);
+      input.step = String(step);
+
+      const valueEl = document.createElement('div');
+      valueEl.className = 'value-box';
+
+      const syncFromTarget = () => {
+        const value = getValue();
+        input.value = String(value);
+        valueEl.textContent = numberFormat(value);
+      };
+
+      input.addEventListener('input', () => {
+        const value = Number(input.value);
+        setValue(value);
+        valueEl.textContent = numberFormat(value);
+      });
+
+      wrap.append(labelEl, input, valueEl);
+      container.appendChild(wrap);
+      return syncFromTarget;
+    }
+
+    function saveOriginal(part) {
+      state.originals.set(part.id, {
+        position: part.mesh.position.clone(),
+        scaling: part.mesh.scaling.clone(),
+      });
+    }
+
+    function updateSelectedMeta() {
+      if (!state.selectedPart) {
+        selectedMetaEl.textContent = 'Nothing selected yet.';
+        return;
+      }
+      selectedMetaEl.textContent = `${state.selectedPart.label} | pos (${numberFormat(state.selectedPart.mesh.position.x)}, ${numberFormat(state.selectedPart.mesh.position.y)}, ${numberFormat(state.selectedPart.mesh.position.z)}) | scale (${numberFormat(state.selectedPart.mesh.scaling.x)}, ${numberFormat(state.selectedPart.mesh.scaling.y)}, ${numberFormat(state.selectedPart.mesh.scaling.z)})`;
+    }
+
+    let positionSyncers = [];
+    let scaleSyncers = [];
+
+    function rebuildControls() {
+      positionControlsEl.innerHTML = '';
+      scaleControlsEl.innerHTML = '';
+      positionSyncers = [];
+      scaleSyncers = [];
+
+      if (!state.selectedPart) return;
+
+      const mesh = state.selectedPart.mesh;
+      positionSyncers.push(makeControl(positionControlsEl, 'Pos X', -4, 4, 0.01, () => mesh.position.x, (v) => { mesh.position.x = v; updateSelectedMeta(); }));
+      positionSyncers.push(makeControl(positionControlsEl, 'Pos Y', 0, 4, 0.01, () => mesh.position.y, (v) => { mesh.position.y = v; updateSelectedMeta(); }));
+      positionSyncers.push(makeControl(positionControlsEl, 'Pos Z', -4, 4, 0.01, () => mesh.position.z, (v) => { mesh.position.z = v; updateSelectedMeta(); }));
+
+      scaleSyncers.push(makeControl(scaleControlsEl, 'Scale X', 0.3, 3, 0.01, () => mesh.scaling.x, (v) => { mesh.scaling.x = v; updateSelectedMeta(); }));
+      scaleSyncers.push(makeControl(scaleControlsEl, 'Scale Y', 0.3, 3, 0.01, () => mesh.scaling.y, (v) => { mesh.scaling.y = v; updateSelectedMeta(); }));
+      scaleSyncers.push(makeControl(scaleControlsEl, 'Scale Z', 0.3, 3, 0.01, () => mesh.scaling.z, (v) => { mesh.scaling.z = v; updateSelectedMeta(); }));
+
+      [...positionSyncers, ...scaleSyncers].forEach((sync) => sync());
+    }
+
+    function refreshPartButtons() {
+      const buttons = partListEl.querySelectorAll('.part-btn');
+      buttons.forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.partId === (state.selectedPart && state.selectedPart.id));
+      });
+    }
+
+    function highlightSelection() {
+      state.parts.forEach((part) => {
+        part.mesh.renderOutline = state.selectedPart && state.selectedPart.id === part.id;
+        part.mesh.outlineWidth = 0.08;
+        part.mesh.outlineColor = BABYLON.Color3.FromHexString('#38bdf8');
+      });
+    }
+
+    function selectPart(id) {
+      const part = state.parts.find((item) => item.id === id) || null;
+      state.selectedPart = part;
+      refreshPartButtons();
+      highlightSelection();
+      rebuildControls();
+      updateSelectedMeta();
+    }
+
+    function createPartButton(part) {
+      const btn = document.createElement('button');
+      btn.className = 'part-btn';
+      btn.dataset.partId = part.id;
+      btn.innerHTML = `<strong>${part.label}</strong><span>${part.description}</span>`;
+      btn.addEventListener('click', () => selectPart(part.id));
+      partListEl.appendChild(btn);
+    }
+
+    function createScene() {
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.01, 0.04, 0.09, 1);
+
+      const camera = new BABYLON.ArcRotateCamera('camera', -Math.PI / 2.3, 1.1, 14, new BABYLON.Vector3(0, 1.6, 0), scene);
+      camera.attachControl(canvas, true);
+      camera.lowerRadiusLimit = 7;
+      camera.upperRadiusLimit = 24;
+      camera.wheelDeltaPercentage = 0.01;
+
+      const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
+      hemi.intensity = 0.95;
+
+      const dir = new BABYLON.DirectionalLight('dir', new BABYLON.Vector3(-1, -2, -1), scene);
+      dir.position = new BABYLON.Vector3(8, 10, 8);
+      dir.intensity = 0.7;
+
+      const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 20, height: 20 }, scene);
+      const grid = new BABYLON.GridMaterial('gridMat', scene);
+      grid.majorUnitFrequency = 5;
+      grid.minorUnitVisibility = 0.35;
+      grid.gridRatio = 1;
+      grid.backFaceCulling = false;
+      grid.mainColor = new BABYLON.Color3(0.22, 0.3, 0.38);
+      grid.lineColor = new BABYLON.Color3(0.4, 0.52, 0.62);
+      grid.opacity = 0.65;
+      ground.material = grid;
+
+      const parent = new BABYLON.TransformNode('editableObject', scene);
+
+      function material(hex) {
+        const mat = new BABYLON.StandardMaterial(`mat-${hex}`, scene);
+        mat.diffuseColor = BABYLON.Color3.FromHexString(hex);
+        mat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+        return mat;
+      }
+
+      const parts = [
+        {
+          id: 'body',
+          label: 'Body',
+          description: 'Main object shell',
+          mesh: BABYLON.MeshBuilder.CreateBox('body', { width: 3.2, height: 2.6, depth: 1.4 }, scene),
+          position: new BABYLON.Vector3(0, 1.3, 0),
+          color: '#475569',
+        },
+        {
+          id: 'top',
+          label: 'Top Panel',
+          description: 'Upper plate element',
+          mesh: BABYLON.MeshBuilder.CreateBox('top', { width: 3.45, height: 0.18, depth: 1.55 }, scene),
+          position: new BABYLON.Vector3(0, 2.68, 0),
+          color: '#7c3aed',
+        },
+        {
+          id: 'doorLeft',
+          label: 'Left Door',
+          description: 'Editable front panel',
+          mesh: BABYLON.MeshBuilder.CreateBox('doorLeft', { width: 1.45, height: 2.2, depth: 0.08 }, scene),
+          position: new BABYLON.Vector3(-0.78, 1.3, 0.75),
+          color: '#0ea5e9',
+        },
+        {
+          id: 'doorRight',
+          label: 'Right Door',
+          description: 'Editable front panel',
+          mesh: BABYLON.MeshBuilder.CreateBox('doorRight', { width: 1.45, height: 2.2, depth: 0.08 }, scene),
+          position: new BABYLON.Vector3(0.78, 1.3, 0.75),
+          color: '#14b8a6',
+        },
+        {
+          id: 'base',
+          label: 'Base',
+          description: 'Bottom support block',
+          mesh: BABYLON.MeshBuilder.CreateBox('base', { width: 3.4, height: 0.22, depth: 1.55 }, scene),
+          position: new BABYLON.Vector3(0, 0.11, 0),
+          color: '#f97316',
+        }
+      ];
+
+      state.parts = parts.map((part) => {
+        part.mesh.position = part.position.clone();
+        part.mesh.parent = parent;
+        part.mesh.material = material(part.color);
+        part.mesh.isPickable = true;
+        saveOriginal(part);
+        createPartButton(part);
+        return part;
+      });
+
+      scene.onPointerObservable.add((pointerInfo) => {
+        if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERPICK) return;
+        const picked = pointerInfo.pickInfo && pointerInfo.pickInfo.pickedMesh;
+        if (!picked) return;
+        const part = state.parts.find((item) => item.mesh === picked);
+        if (part) selectPart(part.id);
+      });
+
+      selectPart('body');
+      return scene;
+    }
+
+    const scene = createScene();
+
+    resetPartBtn.addEventListener('click', () => {
+      if (!state.selectedPart) return;
+      const original = state.originals.get(state.selectedPart.id);
+      state.selectedPart.mesh.position.copyFrom(original.position);
+      state.selectedPart.mesh.scaling.copyFrom(original.scaling);
+      rebuildControls();
+      updateSelectedMeta();
+    });
+
+    resetSceneBtn.addEventListener('click', () => {
+      state.parts.forEach((part) => {
+        const original = state.originals.get(part.id);
+        part.mesh.position.copyFrom(original.position);
+        part.mesh.scaling.copyFrom(original.scaling);
+      });
+      rebuildControls();
+      updateSelectedMeta();
+    });
+
+    engine.runRenderLoop(() => {
+      scene.render();
+    });
+
+    window.addEventListener('resize', () => {
+      engine.resize();
+    });
+  </script>
+</body>
+</html>

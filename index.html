@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Babylon.js 3D Editor Mockup</title>
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="renderCanvas"></canvas>
+
+    <div class="panel topbar">
+      <div class="title-wrap">
+        <h1>Babylon.js 3D Editor Mockup</h1>
+        <p>Standalone prototype for a future WordPress plugin editor workflow.</p>
+      </div>
+      <div class="badge-row">
+        <div class="badge">Click a part to select</div>
+        <div class="badge">Drag to orbit camera</div>
+        <div class="badge">Use sliders to move and resize</div>
+      </div>
+    </div>
+
+    <aside class="panel sidebar">
+      <section class="section">
+        <h3>Object Parts</h3>
+        <p class="subtle">This mockup uses a simple cabinet-like object with editable sub-parts.</p>
+        <div id="partList" class="part-list"></div>
+      </section>
+      <section class="section">
+        <h3>Selected Part</h3>
+        <p id="selectedMeta" class="subtle">Nothing selected yet.</p>
+      </section>
+      <section class="section">
+        <h3>Move</h3>
+        <div id="positionControls" class="controls"></div>
+      </section>
+      <section class="section">
+        <h3>Resize</h3>
+        <div id="scaleControls" class="controls"></div>
+      </section>
+      <section class="section">
+        <h3>Quick Actions</h3>
+        <div class="action-row">
+          <button id="resetPart" class="action-btn">Reset selected part</button>
+          <button id="resetScene" class="action-btn">Reset whole object</button>
+        </div>
+      </section>
+    </aside>
+
+    <div class="panel hint">
+      <strong>Why this is useful</strong>
+      This prototype shows the interaction pattern for a simplified 3D editor.
+    </div>
+  </div>
+
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/materialsLibrary/babylon.gridMaterial.min.js"></script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
